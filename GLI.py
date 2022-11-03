@@ -1,0 +1,102 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Dec 18 15:17:32 2020
+
+@author: pdsu_szj
+"""
+
+
+import networkx as nx
+import pylab
+import random
+
+path = 'CA-GrQc.txt'#此处更换数据集
+def simjkd( u, v):        
+    set_v = set( G.neighbors(v))
+    set_v.add(v)
+    set_u = set( G.neighbors(u))
+    set_u.add(u)
+    jac = len(set_v & set_u) * 1.0 / len(set_v | set_u) #杰肯德相似系数
+#    jac = (len(set_v & set_u)-2) * 1.0 /( len(set_v | set_u)-2 )邻里重复度
+#    jac =1/(1+ abs(len(set_v)-len(set_u)))欧氏距离-衡量相似度
+#    jac = len(set_v)*len(set_u)/(pow(len(set_v),2)+ pow(len(set_u),2)-len(set_v)*len(set_u))
+#    广义Jaccard相似度，
+    return jac
+G = nx.Graph()
+
+with open(path) as file:
+    for line in file:
+        head, tail = [int(x) for x in line.split()]
+        G.add_edge(head, tail)
+nums = G.number_of_nodes() # 节点 数
+print('总节点数',nums)
+G.remove_edges_from(nx.selfloop_edges(G))
+k_shell=nx.core_number(G) 
+print('k_shell :',k_shell)
+maxKshell=max(k_shell.values())#通过max()函数找到字典k_shell中的value最大值。
+minKshell=min(k_shell.values())#通过max()函数找到字典k_shell中的value最小值。
+maxD=max(dict(G.degree()).values())
+print("maxD",maxD)
+def getCountKshell(G):#参数G为图
+    node = G.nodes()
+    print("node=",node)
+    ks_classfity = [dict(g) for k, g in groupby(sorted(nx.core_number(G).items(), key=by_value), by_value)]
+    print(ks_classfity)
+    dicts = {}
+    for index in node:
+        list = []
+        print("index=",index)
+        for ks_value in ks_classfity:
+            dictss = {}
+            for k,v in ks_value.items():
+                if k == index:
+                    continue
+                print("k=,length=",k,nx.shortest_path_length(G,source=index,target=k))
+                dictss[k] =  nx.shortest_path_length(G,source=index,target=k)
+            list.append(dictss)
+        dicts[index] = list
+    return dicts
+
+d=[]
+#影响系数* （k-shell值+度））的累加和      +自身度
+res={}
+for nodev in G.nodes():
+    value=0
+    
+    for nodeu in G.neighbors(nodev):
+        xs=simjkd(nodev,nodeu)
+        value+=xs*(G.degree(nodeu))+k_shell[nodeu]
+    res[nodev]=value/maxD+G.degree(nodev)+k_shell[nodev]
+print(res)
+for key in res.keys():
+    rest = res[key]
+    d.append((key, rest))
+sortNum = sorted(d, key=lambda x: x[1], reverse=True)
+#按照数值排序
+nodelist=[]
+sortNum = sorted(res.items(), key=lambda x: x[1], reverse=True)
+ #将结果保存到文件中
+for key in sortNum:
+    nodelist.append(key.__getitem__(0))
+print(nodelist)
+
+f =open('outputdata\\hu_'+path, "w+")
+for key,val in sortNum:
+   f.write(str(key)+'\t'+str(val)+"\n")   
+
+f.close()
+
+#按照节点编号排序
+nodelist1=[]
+sortNum1 = sorted(res.items(), key=lambda x: x[0], reverse=False)
+ #将结果保存到文件中
+for key in sortNum1:
+    nodelist1.append(key.__getitem__(0))
+print(nodelist1)
+
+f =open('outputdata\\hu_1'+path, "w+")
+for key,val in sortNum1:
+   f.write(str(key)+'\t'+str(val)+"\n")   
+
+f.close()
+
